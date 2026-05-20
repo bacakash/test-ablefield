@@ -1,0 +1,369 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NovaCRM AI Agent</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #777;
+    }
+    .top {
+      background: #ececec;
+      padding: 18px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ddd;
+    }
+    .logo {
+      font-size: 28px;
+      font-weight: bold;
+      color: #b0b0b0;
+    }
+    .nav {
+      display: flex;
+      gap: 12px;
+    }
+    .nav div {
+      padding: 8px 14px;
+      background: #dfdfdf;
+      color: #aaa;
+      cursor: pointer;
+      border-radius: 18px;
+      user-select: none;
+    }
+    .page {
+      display: grid;
+      grid-template-columns: 340px 1fr 330px;
+      gap: 18px;
+      padding: 18px;
+      min-height: calc(100vh - 73px);
+    }
+    .card {
+      background: white;
+      border: 1px solid #efefef;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 8px 22px rgba(0,0,0,.05);
+    }
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #9e9e9e;
+      margin-bottom: 14px;
+    }
+    input, textarea, select {
+      width: 100%;
+      margin-bottom: 10px;
+      border: 1px solid #eee;
+      background: #fafafa;
+      color: #b1b1b1;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 14px;
+    }
+    textarea { min-height: 94px; resize: vertical; }
+    button, .fake-button {
+      border: 0;
+      background: #d7d7d7;
+      color: #fff;
+      padding: 11px 15px;
+      border-radius: 14px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-top: 6px;
+      display: inline-block;
+    }
+    .customer-chip {
+      margin-top: 12px;
+      padding: 12px;
+      background: #f3f3f3;
+      border-radius: 14px;
+      color: #aaa;
+      word-break: break-word;
+    }
+    .chat {
+      height: 410px;
+      overflow: auto;
+      border: 1px solid #f0f0f0;
+      background: #fbfbfb;
+      border-radius: 18px;
+      padding: 14px;
+    }
+    .bubble {
+      max-width: 82%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 18px;
+      color: #a5a5a5;
+      background: #efefef;
+    }
+    .bubble.agent {
+      margin-left: auto;
+      background: #e4e4e4;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .stat {
+      background: #f7f7f7;
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .number {
+      font-size: 30px;
+      font-weight: bold;
+      color: #c4c4c4;
+    }
+    .small {
+      font-size: 12px;
+      color: #c0c0c0;
+    }
+    .tags span {
+      background: #eeeeee;
+      border-radius: 999px;
+      display: inline-block;
+      padding: 6px 10px;
+      margin: 4px;
+      font-size: 12px;
+      color: #b0b0b0;
+    }
+    .warning {
+      padding: 10px;
+      border-radius: 14px;
+      background: #f2f2f2;
+      color: #c3c3c3;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="logo">NovaCRM // Agent Console</div>
+    <div class="nav">
+      <div onclick="reloadAnalytics()">Analytics</div>
+      <div onclick="clearChat()">Clear</div>
+      <div onclick="seedPreview()">Demo</div>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="card">
+      <div class="title">Customer</div>
+      <input id="fullName" placeholder="Full name">
+      <input id="email" placeholder="Email">
+      <input id="company" placeholder="Company">
+      <input id="phone" placeholder="Phone">
+      <button onclick="createCustomer()">Create</button>
+      <div class="fake-button" onclick="useStoredCustomer()">Use last</div>
+      <div id="customerInfo" class="customer-chip">No customer selected.</div>
+
+      <div class="title" style="margin-top:20px;">Add CRM Note</div>
+      <textarea id="noteText" placeholder="Write a CRM note"></textarea>
+      <button onclick="createNote()">+</button>
+
+      <div class="title" style="margin-top:20px;">Open Ticket</div>
+      <input id="ticketTitle" placeholder="Ticket title">
+      <textarea id="ticketDescription" placeholder="Ticket details"></textarea>
+      <select id="ticketPriority">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+        <option value="critical">Critical</option>
+      </select>
+      <button onclick="createTicket()">Create ticket</button>
+    </div>
+
+    <div class="card">
+      <div class="title">Talk With AI Agent</div>
+      <div id="chat" class="chat"></div>
+      <textarea id="customerMessage" placeholder="Type customer message here..."></textarea>
+      <select id="channel">
+        <option value="chat">Chat</option>
+        <option value="email">Email</option>
+        <option value="phone">Phone</option>
+      </select>
+      <button onclick="sendMessage()">Send</button>
+      <button onclick="loadConversation()">Load conversation</button>
+      <div id="responseMeta" class="warning">Intent, tags, and escalation details will appear here.</div>
+    </div>
+
+    <div class="card">
+      <div class="title">Analytics</div>
+      <div class="stats">
+        <div class="stat">
+          <div id="totalCustomers" class="number">0</div>
+          <div>Total customers</div>
+        </div>
+        <div class="stat">
+          <div id="totalMessages" class="number">0</div>
+          <div>Total messages</div>
+        </div>
+        <div class="stat">
+          <div id="openTickets" class="number">0</div>
+          <div>Open tickets</div>
+        </div>
+        <div class="stat">
+          <div id="sentiment" class="number">0</div>
+          <div>Avg sentiment</div>
+        </div>
+        <div class="stat">
+          <div id="escalationRate" class="number">0%</div>
+          <div>Escalation rate</div>
+        </div>
+      </div>
+      <div class="title" style="margin-top:18px;">Top Intents</div>
+      <div id="topIntents" class="tags"></div>
+      <div class="title" style="margin-top:18px;">Channels</div>
+      <div id="channels" class="tags"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = "http://127.0.0.1:8000";
+    let selectedCustomerId = localStorage.getItem("crm_customer_id") || "";
+
+    function htmlEscape(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function setCustomerInfo(data) {
+      const node = document.getElementById("customerInfo");
+      node.innerHTML =
+        "<b>" + htmlEscape(data.full_name) + "</b><br>" +
+        htmlEscape(data.email) + "<br>" +
+        "ID: " + htmlEscape(data.id) + "<br>" +
+        "Tags: " + htmlEscape((data.tags || []).join(", "));
+    }
+
+    async function createCustomer() {
+      const payload = {
+        full_name: document.getElementById("fullName").value,
+        email: document.getElementById("email").value,
+        company: document.getElementById("company").value || null,
+        phone: document.getElementById("phone").value || null
+      };
+
+      const res = await fetch(API + "/customers", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      selectedCustomerId = data.id;
+      localStorage.setItem("crm_customer_id", selectedCustomerId);
+      setCustomerInfo(data);
+      reloadAnalytics();
+    }
+
+    async function useStoredCustomer() {
+      if (!selectedCustomerId) return;
+      const res = await fetch(API + "/customers/" + selectedCustomerId);
+      const data = await res.json();
+      setCustomerInfo(data);
+      loadConversation();
+    }
+
+    function addBubble(role, content) {
+      const chat = document.getElementById("chat");
+      const div = document.createElement("div");
+      div.className = "bubble " + (role === "agent" ? "agent" : "");
+      div.innerHTML = "<b>" + htmlEscape(role) + ":</b> " + htmlEscape(content);
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendMessage() {
+      if (!selectedCustomerId) return;
+      const message = document.getElementById("customerMessage").value;
+      const channel = document.getElementById("channel").value;
+      addBubble("customer", message);
+
+      const res = await fetch(API + "/conversations/" + selectedCustomerId + "/message", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({message, channel})
+      });
+      const data = await res.json();
+      addBubble("agent", data.reply);
+      document.getElementById("responseMeta").innerHTML =
+        "Intent: " + htmlEscape(data.detected_intent) +
+        "<br>Sentiment: " + htmlEscape(data.sentiment_score) +
+        "<br>Escalate: " + htmlEscape(data.should_escalate) +
+        "<br>Tags: " + htmlEscape((data.suggested_tags || []).join(", "));
+      document.getElementById("customerMessage").value = "";
+      reloadAnalytics();
+      useStoredCustomer();
+    }
+
+    async function loadConversation() {
+      if (!selectedCustomerId) return;
+      const res = await fetch(API + "/conversations/" + selectedCustomerId);
+      const data = await res.json();
+      const chat = document.getElementById("chat");
+      chat.innerHTML = "";
+      (data.messages || []).forEach(item => addBubble(item.role, item.content));
+    }
+
+    async function createNote() {
+      if (!selectedCustomerId) return;
+      await fetch(API + "/customers/" + selectedCustomerId + "/notes", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({text: document.getElementById("noteText").value})
+      });
+      document.getElementById("noteText").value = "";
+    }
+
+    async function createTicket() {
+      if (!selectedCustomerId) return;
+      await fetch(API + "/customers/" + selectedCustomerId + "/tickets", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          title: document.getElementById("ticketTitle").value,
+          description: document.getElementById("ticketDescription").value,
+          priority: document.getElementById("ticketPriority").value
+        })
+      });
+      reloadAnalytics();
+    }
+
+    async function reloadAnalytics() {
+      const res = await fetch(API + "/analytics/summary");
+      const data = await res.json();
+      document.getElementById("totalCustomers").textContent = data.total_customers;
+      document.getElementById("totalMessages").textContent = data.total_messages;
+      document.getElementById("openTickets").textContent = data.open_tickets;
+      document.getElementById("sentiment").textContent = data.average_sentiment;
+      document.getElementById("escalationRate").textContent = data.escalation_rate_percent + "%";
+      document.getElementById("topIntents").innerHTML = Object.entries(data.top_intents || {})
+        .map(([k, v]) => "<span>" + htmlEscape(k) + ": " + htmlEscape(v) + "</span>")
+        .join("");
+      document.getElementById("channels").innerHTML = Object.entries(data.busiest_channels || {})
+        .map(([k, v]) => "<span>" + htmlEscape(k) + ": " + htmlEscape(v) + "</span>")
+        .join("");
+    }
+
+    function clearChat() {
+      document.getElementById("chat").innerHTML = "";
+    }
+
+    function seedPreview() {
+      document.getElementById("customerMessage").value = "The integration is not working and I am frustrated.";
+    }
+
+    reloadAnalytics();
+    if (selectedCustomerId) useStoredCustomer();
+  </script>
+</body>
+</html>
